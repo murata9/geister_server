@@ -34,9 +34,11 @@ def hello_world():
     return '<html><body><h1>sample</h1></body></html>'
 
 gen_session_id = 0
+valid_sessions = set()
 def generate_session_id():
     global gen_session_id
     gen_session_id = gen_session_id + 1
+    valid_sessions.add(gen_session_id)
     return gen_session_id
 
 def login_required(method):
@@ -50,12 +52,15 @@ def login_required(method):
             user_id = decoded['user_id']
             print ("user_id:" + str(user_id))
             session_id = decoded['user_session_id']
+            if session_id not in valid_sessions:
+                print("token is deleted")
+                abort(400, "Token is deleted.")
         except jwt.DecodeError:
-           print("token is not valid")
-           abort(400, "Token is not valid.")
+            print("token is not valid")
+            abort(400, "Token is not valid.")
         except jwt.ExpiredSignatureError:
-           print("token is expired")
-           abort(400, "Token is expired.")
+            print("token is expired")
+            abort(400, "Token is expired.")
 
         return method(user_id, *args, **kwargs)
     return wrapper
@@ -104,11 +109,11 @@ def user_sessions():
 
     user_session_id = generate_session_id()
 
-    # セッションの有効期限(1時間)
+    # セッションの有効期限(1時間) # TODO:有効期限を管理する方法は、時間を後から更新できるように検討し直した方が良い
     exp = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
     encoded = jwt.encode({"user_session_id": user_session_id, "user_id":user.id, "exp":exp},
       get_secret_key(),
-      algorithm=['HS256']
+      algorithm='HS256'
       )
     token = encoded.decode('utf-8')
 
@@ -126,6 +131,15 @@ def user_sessions():
     #             , "access_token":""
     #             , "user_id":33
     #        }'''
+
+# ログアウト
+# TODO:ログアウト時はセッションの期限切れでも通してもよいかも？
+@app.route('/api/user_sessions/<int:session_id>', methods=['DELETE'])
+@login_required
+def delete_session(user_id, session_id):
+    print("delte session_id:" + str(session_id))
+    valid_sessions.discard(session_id)
+    return ""
 
 @app.route('/api/rooms', methods=['GET'])
 def rooms():
