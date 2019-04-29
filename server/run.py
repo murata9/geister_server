@@ -12,7 +12,8 @@ import logging
 import json
 
 from geister.piece.piece import Piece
-from geister.user.user import init_user, create_user, get_user
+from geister.user.user import init_user, create_user, get_user, login_user
+from geister.room.room import init_room, create_room, get_room, get_rooms
 
 app = Flask(__name__)
 
@@ -23,6 +24,7 @@ def init_logger():
 
 def init_database():
     init_user()
+    init_room()
 
 # 設定確認
 # print(app.config)
@@ -54,7 +56,8 @@ def login_required(method):
             session_id = decoded['user_session_id']
             if session_id not in valid_sessions:
                 print("token is deleted")
-                abort(400, "Token is deleted.")
+                # 開発中はサーバーrestart時に面倒なのでセッションチェックを切っておく
+                # abort(400, "Token is deleted.")
         except jwt.DecodeError:
             print("token is not valid")
             abort(400, "Token is not valid.")
@@ -103,7 +106,7 @@ def user_sessions():
     dic = request.json
     name = dic[u"name"]
     password = dic[u"password"]
-    user = get_user(name, password)
+    user = login_user(name, password)
     if user is None:
         abort(400, "Login Failure")
 
@@ -141,16 +144,48 @@ def delete_session(user_id, session_id):
     valid_sessions.discard(session_id)
     return ""
 
+# ルーム一覧取得
 @app.route('/api/rooms', methods=['GET'])
 def rooms():
-    return '''{ "rooms": [ {
-                "room_id":3
-                , "status" : "waiting" 
-                , "game_id":33
-                , "owner_name" : "owner"
-                , "created_at" : ""
-                , "updated_at" : ""
-           } ] }'''
+    rooms = get_rooms()
+    if rooms is None:
+        abort(500, "Rooms Get Error!")
+    result = []
+    for room in rooms:
+        result.append({
+            "room_id": room.id
+            , "status": room.status
+            , "game_id": room.game_id
+            , "owner_name": room.created_user_name
+        })
+
+    return json.dumps({ "rooms": result })
+    # return '''{ "rooms": [ {
+    #             "room_id":3
+    #             , "status" : "waiting"
+    #             , "game_id":33
+    #             , "owner_name" : "owner"
+    #             , "created_at" : ""
+    #             , "updated_at" : ""
+    #        } ] }'''
+
+@app.route('/api/rooms', methods=['POST'])
+@login_required
+def create_new_room(user_id):
+    user = get_user(user_id)
+    if user is None:
+        print ("user not found")
+        abort(500, "user not found")
+    room = create_room(user)
+    if room is None:
+        print("room create failure")
+        abort(500, "room create failure")
+    result = {
+        "room_id" : room.id
+        , "player_entry_id" : 99 # TODO
+    }
+    return json.dumps(result)
+    # '''{ "room_id":3, "player_entry_id":1 }'''
 
 @app.route('/api/rooms/<int:room_id>/player_entries', methods=['POST'])
 @login_required
@@ -161,6 +196,11 @@ def player_entried(user_id, room_id):
                 , "room_id":45
                 , "user_id":99
            }'''
+
+@app.route('/api/player_entries/<int:entry_id>', methods=['DELETE'])
+@login_required
+def delete_player_entry(user_id, entry_id):
+    return ""
 
 @app.route('/api/rooms/<int:room_id>', methods=['GET'])
 def room(room_id):

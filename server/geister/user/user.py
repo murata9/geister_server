@@ -27,7 +27,19 @@ def create_user(user_name, password):
         print(e)
         return None
 
-def get_user(user_name, password):
+def get_user(user_id):
+    try:
+        user = User.get(id=user_id)
+        return user
+    except User.DoesNotExist:
+        return None
+    except Exception as e:
+        print(type(e))
+        print(e)
+    return None
+
+
+def login_user(user_name, password):
     try:
         user = User.get(User.name==user_name, User.password==password)
         return user
