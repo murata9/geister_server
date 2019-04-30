@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
-from flask import Blueprint, request
+from flask import Blueprint, request, abort
 import json
 
 from db_model.user import get_user

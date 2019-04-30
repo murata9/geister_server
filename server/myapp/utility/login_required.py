@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
-from flask import request
+from flask import request, abort
 import functools
 from db_model.session import decode_access_token
 
