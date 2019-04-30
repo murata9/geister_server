@@ -14,6 +14,7 @@ import json
 from geister.piece.piece import Piece
 from geister.user.user import init_user, create_user, get_user, login_user
 from geister.room.room import init_room, create_room, get_room, get_rooms
+from geister.session.session import init_session, create_session, get_session
 
 app = Flask(__name__)
 
@@ -25,6 +26,7 @@ def init_logger():
 def init_database():
     init_user()
     init_room()
+    init_session()
 
 # 設定確認
 # print(app.config)
@@ -34,14 +36,6 @@ app.config['ENV'] = "development"
 @app.route('/')
 def hello_world():
     return '<html><body><h1>sample</h1></body></html>'
-
-gen_session_id = 0
-valid_sessions = set()
-def generate_session_id():
-    global gen_session_id
-    gen_session_id = gen_session_id + 1
-    valid_sessions.add(gen_session_id)
-    return gen_session_id
 
 def login_required(method):
     @functools.wraps(method)
@@ -54,10 +48,10 @@ def login_required(method):
             user_id = decoded['user_id']
             print ("user_id:" + str(user_id))
             session_id = decoded['user_session_id']
-            if session_id not in valid_sessions:
-                print("token is deleted")
-                # 開発中はサーバーrestart時に面倒なのでセッションチェックを切っておく
-                # abort(400, "Token is deleted.")
+            session = get_session(session_id)
+            if session is None:
+                print("session is deleted")
+                abort(400, "Session is deleted.")
         except jwt.DecodeError:
             print("token is not valid")
             abort(400, "Token is not valid.")
@@ -98,7 +92,7 @@ def users():
 
 
 def get_secret_key():
-  return "hogehoge" # TODO
+    return "hogehoge" # TODO:環境変数から読み込むなど、コードに埋め込まないようにする
 
 # ログイン
 @app.route('/api/user_sessions', methods=['POST'])
@@ -110,11 +104,11 @@ def user_sessions():
     if user is None:
         abort(400, "Login Failure")
 
-    user_session_id = generate_session_id()
+    session = create_session(user.id)
 
     # セッションの有効期限(1時間) # TODO:有効期限を管理する方法は、時間を後から更新できるように検討し直した方が良い
     exp = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-    encoded = jwt.encode({"user_session_id": user_session_id, "user_id":user.id, "exp":exp},
+    encoded = jwt.encode({"user_session_id": session.id, "user_id":user.id, "exp":exp},
       get_secret_key(),
       algorithm='HS256'
       )
@@ -123,7 +117,7 @@ def user_sessions():
     print ("token:" + str(token))
 
     result = {
-                "user_session_id": user_session_id,
+                "user_session_id": session.id,
                 "access_token": token,
                 "user_id" : user.id
             }
