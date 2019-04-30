@@ -5,7 +5,7 @@ from peewee import *
 import json
 from .database.database import db
 from .user import User
-from .game import create_game
+from .game import create_game, get_game
 
 class Room(Model):
     # idフィールドが暗黙に追加される
@@ -30,7 +30,7 @@ class Room(Model):
         return json.dumps( self.to_dict() )
 
     def get_entry_count(self):
-        count = len(self.player_entrys) # player_entry.pyでbackrefが定義されている
+        count = len(self.player_entries) # player_entry.pyでbackrefが定義されている
         return count
 
     def is_full(self):
@@ -45,6 +45,12 @@ class Room(Model):
                 # 満員になったらplayingにする
                 self.status = "playing"
                 self.save()
+                game = get_game(self.game_id)
+                if game is None:
+                    print("[logic error]game not found! game_id:" + str(self.game_id))
+                    return
+                entries = [p for p in self.player_entries]
+                game.start_game(entries)
         elif self.is_empty():
             # 空になったらルームを削除する
             self.delete_instance()

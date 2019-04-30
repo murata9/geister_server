@@ -8,7 +8,7 @@ from .room import Room, get_room
 class PlayerEntry(Model):
     # idフィールドが暗黙に追加される
     user_id = IntegerField() # TODO:unique?
-    room_id = ForeignKeyField(Room, backref='player_entrys')
+    room_id = ForeignKeyField(Room, backref='player_entries')
 
     class Meta:
             database = db

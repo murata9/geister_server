@@ -1,15 +1,36 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
+import random
 from peewee import *
 from .database.database import db
 
 class Game(Model):
     # idフィールドが暗黙に追加される
-    status = CharField(default='prepare')
+    first_mover_user_id = IntegerField(default=0)
+    last_mover_user_id = IntegerField(default=0)
+    turn_count = IntegerField(default=1)
+    winner_user_id = IntegerField(default=0)
+    status = CharField(default='preparing')
 
     class Meta:
             database = db
+
+    def get_turn_mover_user_id(self):
+        if self.turn_count % 2 == 1:
+            return self.first_mover_user_id
+        else:
+            return self.last_mover_user_id
+
+    def start_game(self, player_entries):
+        # ゲーム開始時にランダムにスタートプレイヤーを決定する
+        if len(player_entries) != 2:
+            print("Invalid Player Entries len:" + str(len(player_entries)))
+            return
+        r = random.randint(0, 1)
+        self.first_mover_user_id = player_entries[r].user_id
+        self.last_mover_user_id = player_entries[1-r].user_id
+        self.save()
 
 def init_game():
     db.create_tables([Game])
