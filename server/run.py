@@ -9,6 +9,8 @@ import json
 from db_model.user import init_user
 from db_model.room import init_room
 from db_model.session import init_session
+from db_model.game import init_game
+from db_model.player_entry import init_player_entry
 
 from myapp.user_app import user_app
 from myapp.room_app import room_app
@@ -28,6 +30,8 @@ def init_database():
     init_user()
     init_room()
     init_session()
+    init_game()
+    init_player_entry()
 
 # 設定確認
 # print(app.config)
