@@ -6,9 +6,9 @@ from flask import *
 import logging
 import json
 
-from geister.user.user import init_user
-from geister.room.room import init_room
-from geister.session.session import init_session
+from db_model.user import init_user
+from db_model.room import init_room
+from db_model.session import init_session
 
 from myapp.user_app import user_app
 from myapp.room_app import room_app

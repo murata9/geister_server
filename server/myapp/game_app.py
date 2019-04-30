@@ -4,7 +4,7 @@
 from flask import Blueprint, request
 import json
 
-from geister.user.user import get_user
+from db_model.user import get_user
 from .utility.login_required import login_required
 
 game_app = Blueprint('game_app', __name__)

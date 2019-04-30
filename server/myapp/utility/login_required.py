@@ -3,7 +3,7 @@
 
 from flask import request
 import functools
-from geister.session.session import decode_access_token
+from db_model.session import decode_access_token
 
 # 認証関数
 # 認証が必要なメソッドはこの関数を事前に呼び出すように指定する

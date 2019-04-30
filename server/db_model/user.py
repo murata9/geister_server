@@ -2,7 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 from peewee import *
-from ..database.database import db
+from .database.database import db
 
 class User(Model):
     # idフィールドが暗黙に追加される

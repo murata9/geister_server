@@ -4,8 +4,8 @@
 from flask import Blueprint, request
 import json
 
-from geister.user.user import create_user, login_user
-from geister.session.session import create_session, get_session, disable_session
+from db_model.user import create_user, login_user
+from db_model.session import create_session, get_session, disable_session
 from .utility.login_required import login_required
 
 user_app = Blueprint('user_app', __name__)

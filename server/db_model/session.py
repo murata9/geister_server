@@ -4,7 +4,7 @@
 from peewee import *
 import jwt
 import datetime
-from ..database.database import db
+from .database.database import db
 
 class Session(Model):
     # idフィールドが暗黙に追加される

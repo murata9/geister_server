@@ -4,8 +4,8 @@
 from flask import Blueprint, request
 import json
 
-from geister.user.user import get_user
-from geister.room.room import create_room, get_room, get_rooms
+from db_model.user import get_user
+from db_model.room import create_room, get_room, get_rooms
 from .utility.login_required import login_required
 
 room_app = Blueprint('room_app', __name__)
