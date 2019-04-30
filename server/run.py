@@ -4,19 +4,32 @@
 from flask import *
 from peewee import *
 
-import datetime
-import jwt
-import functools
 
 import logging
 import json
+import functools
 
 from geister.piece.piece import Piece
 from geister.user.user import init_user, create_user, get_user, login_user
 from geister.room.room import init_room, create_room, get_room, get_rooms
-from geister.session.session import init_session, create_session, get_session
+from geister.session.session import init_session, create_session, get_session, disable_session, decode_access_token
 
 app = Flask(__name__)
+
+# 認証関数
+# 認証が必要なメソッドはこの関数を事前に呼び出すように指定する
+def login_required(method):
+    @functools.wraps(method)
+    def wrapper(*args, **kwargs):
+        header = request.headers.get('Authorization')
+        _, token = header.split("=")
+        token = str(token).strip("\"")
+        user_id, error_message = decode_access_token(token)
+        if user_id is None:
+            print(error_message)
+            abort(400, error_message)
+        return method(user_id, *args, **kwargs)
+    return wrapper
 
 def init_logger():
     logger = logging.getLogger('peewee')
@@ -36,33 +49,6 @@ app.config['ENV'] = "development"
 @app.route('/')
 def hello_world():
     return '<html><body><h1>sample</h1></body></html>'
-
-def login_required(method):
-    @functools.wraps(method)
-    def wrapper(*args, **kwargs):
-        header = request.headers.get('Authorization')
-        _, token = header.split("=")
-        token = str(token).strip("\"")
-        try:
-            decoded = jwt.decode(token, get_secret_key(), algorithms='HS256')
-            user_id = decoded['user_id']
-            print ("user_id:" + str(user_id))
-            session_id = decoded['user_session_id']
-            session = get_session(session_id)
-            if session is None:
-                print("session is deleted")
-                abort(400, "Session is deleted.")
-        except jwt.DecodeError:
-            print("token is not valid")
-            abort(400, "Token is not valid.")
-        except jwt.ExpiredSignatureError:
-            print("token is expired")
-            abort(400, "Token is expired.")
-
-        return method(user_id, *args, **kwargs)
-    return wrapper
-
-
 
 # ユーザー新規登録
 @app.route('/api/users', methods=['POST'])
@@ -91,9 +77,6 @@ def users():
     #        }'''
 
 
-def get_secret_key():
-    return "hogehoge" # TODO:環境変数から読み込むなど、コードに埋め込まないようにする
-
 # ログイン
 @app.route('/api/user_sessions', methods=['POST'])
 def user_sessions():
@@ -104,16 +87,10 @@ def user_sessions():
     if user is None:
         abort(400, "Login Failure")
 
-    session = create_session(user.id)
-
-    # セッションの有効期限(1時間) # TODO:有効期限を管理する方法は、時間を後から更新できるように検討し直した方が良い
-    exp = datetime.datetime.utcnow() + datetime.timedelta(hours=1)
-    encoded = jwt.encode({"user_session_id": session.id, "user_id":user.id, "exp":exp},
-      get_secret_key(),
-      algorithm='HS256'
-      )
-    token = encoded.decode('utf-8')
-
+    session, token = create_session(user.id)
+    if session is None or token is None:
+        print("Create Session Failure")
+        abort(500, "Create Session Failure")
     print ("token:" + str(token))
 
     result = {
@@ -133,9 +110,9 @@ def user_sessions():
 # TODO:ログアウト時はセッションの期限切れでも通してもよいかも？
 @app.route('/api/user_sessions/<int:session_id>', methods=['DELETE'])
 @login_required
-def delete_session(user_id, session_id):
+def logout(user_id, session_id):
     print("delte session_id:" + str(session_id))
-    valid_sessions.discard(session_id)
+    disable_session(session_id)
     return ""
 
 # ルーム一覧取得
