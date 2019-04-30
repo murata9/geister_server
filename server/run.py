@@ -11,6 +11,7 @@ from db_model.room import init_room
 from db_model.session import init_session
 from db_model.game import init_game
 from db_model.player_entry import init_player_entry
+from db_model.piece import init_piece
 
 from myapp.user_app import user_app
 from myapp.room_app import room_app
@@ -32,6 +33,7 @@ def init_database():
     init_session()
     init_game()
     init_player_entry()
+    init_piece()
 
 # 設定確認
 # print(app.config)
