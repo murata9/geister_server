@@ -1,14 +1,14 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
-from flask import Blueprint, request, abort, Response
-from flask_api import status
+from flask import Blueprint, request
 import json
 
 from db_model.user import get_user
 from db_model.room import create_room, get_room, get_rooms
 from db_model.player_entry import create_player_entry, delete_player_entry
 from .utility.login_required import login_required
+from .utility.error_response import make_error_response
 
 room_app = Blueprint('room_app', __name__)
 
@@ -17,7 +17,7 @@ room_app = Blueprint('room_app', __name__)
 def rooms():
     rooms = get_rooms()
     if rooms is None:
-        abort(500, "Rooms Get Error!")
+        return make_error_response(500, "Rooms Get Error!")
     result = []
     for room in rooms:
         result.append( room.to_dict() )
@@ -37,16 +37,13 @@ def rooms():
 def create_new_room(user_id):
     user = get_user(user_id)
     if user is None:
-        print ("user not found")
-        abort(500, "user not found")
+        return make_error_response(500, "user not found")
     room = create_room(user)
     if room is None:
-        print("room create failure")
-        abort(500, "room create failure")
+        return make_error_response(500, "room create failure")
     entry = create_player_entry(user_id, room.id)
     if entry is None:
-        print("player entry create failure")
-        abort(500, "player entry create failure")
+        return make_error_response(500, "player entry create failure")
     result = {
         "room_id" : room.id
         , "player_entry_id" : entry.id
@@ -60,17 +57,15 @@ def create_new_room(user_id):
 def player_entried(user_id, room_id):
     room = get_room(room_id)
     if room is None:
-        print("Room is Not Found")
-        abort(400, "Room is Not Found")
+        return make_error_response(400, "Room is Not Found")
 
     # ルームが満員になっていないかチェック
     if room.is_full():
-        return Response('''{"message":"Room is Full"}''', status.HTTP_400_BAD_REQUEST)
+        return make_error_response(400, "Room is Full")
 
     entry = create_player_entry(user_id, room.id)
     if entry is None:
-        print("player entry create failure")
-        abort(500, "player entry create failure")
+        return make_error_response(500, "player entry create failure")
     result = {
         "player_entry_id" : entry.id
         , "room_id" : room.id
@@ -89,7 +84,7 @@ def player_entried(user_id, room_id):
 def exit_room(user_id, entry_id):
     result = delete_player_entry(entry_id)
     if not result:
-        abort(500, "exit failure")
+        return make_error_response(500, "exit failure")
     return ""
 
 # ルーム状態取得
@@ -97,7 +92,7 @@ def exit_room(user_id, entry_id):
 def room(room_id):
     room = get_room(room_id)
     if room is None:
-        abort(400, "Room Not Found")
+        return make_error_response(400, "Room Not Found")
     result = {
         "room_id": room.id
         , "status" : room.status

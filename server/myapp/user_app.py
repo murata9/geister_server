@@ -1,12 +1,13 @@
 #!/usr/bin/python3
 # -*- coding: UTF-8 -*-
 
-from flask import Blueprint, request, abort
+from flask import Blueprint, request
 import json
 
 from db_model.user import create_user, login_user
 from db_model.session import create_session, get_session, disable_session
 from .utility.login_required import login_required
+from .utility.error_response import make_error_response
 
 user_app = Blueprint('user_app', __name__)
 
@@ -20,7 +21,7 @@ def signup():
 
     if user is None:
         # 既に作成済みのユーザー名
-        abort(400, "Existed UserName")
+        return make_error_response(400, "Existed UserName")
 
     print ("username:" + str(user.name))
     print ("userid:" + str(user.id))
@@ -44,12 +45,12 @@ def login():
     password = dic[u"password"]
     user = login_user(name, password)
     if user is None:
-        abort(400, "Login Failure")
+        return make_error_response(400, "Login Failure")
 
     session, token = create_session(user.id)
     if session is None or token is None:
         print("Create Session Failure")
-        abort(500, "Create Session Failure")
+        return make_error_response(500, "Create Session Failure")
     print ("token:" + str(token))
 
     result = {
