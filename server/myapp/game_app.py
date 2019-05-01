@@ -4,6 +4,7 @@
 from flask import Blueprint, request, abort
 import json
 
+from define.define import PIECE_MAX_COUNT_BY_PLAYER
 from db_model.user import get_user
 from db_model.game import get_game
 from db_model.piece import create_piece
@@ -71,7 +72,7 @@ def preparing(user_id, game_id):
     # 座標が、x:2～5, y:5,6の範囲内であること
     # 座標に重複がないこと
     # goodとevilが4個づつであること
-    if len(pieces) != 8:
+    if len(pieces) != PIECE_MAX_COUNT_BY_PLAYER:
         return make_error_response(400, "Invalid Piece Count")
     duplicate_checker = set()
     good_count = 0
@@ -90,7 +91,7 @@ def preparing(user_id, game_id):
         else:
             return make_error_response(400, "Invalid Piece Kind")
         print("x:" + str(x) + " y:" + str(y) + " kind:" + str(kind))
-    if len(duplicate_checker) != 8:
+    if len(duplicate_checker) != PIECE_MAX_COUNT_BY_PLAYER:
         return make_error_response(400, "Duplicated Position")
     for piece in pieces:
         x = piece[u'point_x']
@@ -102,5 +103,6 @@ def preparing(user_id, game_id):
         if piece is None:
             return make_error_response(500, "Create Piece Failure")
     # TODO:両プレイヤーの初期配置が終わればゲームを進行中にする
+    game.on_after_preparing_one_user()
     return json.dumps(dic) # クライアントでは使っていないが、配置情報をそのまま返す
 

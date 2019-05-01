@@ -4,6 +4,7 @@
 import random
 from peewee import *
 from .database.database import db
+from define.define import PIECE_MAX_COUNT_BY_PLAYER
 
 class Game(Model):
     # idフィールドが暗黙に追加される
@@ -31,6 +32,13 @@ class Game(Model):
         self.first_mover_user_id = player_entries[r].user_id
         self.last_mover_user_id = player_entries[1-r].user_id
         self.save()
+
+    def on_after_preparing_one_user(self):
+        if self.status != "preparing":
+            return
+        if len(self.pieces) >= 2 * PIECE_MAX_COUNT_BY_PLAYER:
+            self.status = "playing"
+            self.save()
 
 def init_game():
     db.create_tables([Game])
