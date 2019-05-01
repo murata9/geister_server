@@ -13,6 +13,7 @@ class Piece(Model):
     x = IntegerField()
     y = IntegerField()
     kind = CharField() # good, evil
+    captured = BooleanField(default=False)
 
     class Meta:
             database = db
@@ -25,7 +26,7 @@ class Piece(Model):
             , "point_x" : self.x
             , "point_y" : self.y
             , "owner_user_id" : self.owner_id.id
-            , "captured" : 0 # TODO
+            , "captured" : self.captured
             , "kind" : self.kind if is_owner else "unknown"
         }
 

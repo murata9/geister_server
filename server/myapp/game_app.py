@@ -106,7 +106,7 @@ def preparing(user_id, game_id):
         piece = create_piece(game.id, user.id, x, y, kind)
         if piece is None:
             return make_error_response(500, "Create Piece Failure")
-    # TODO:両プレイヤーの初期配置が終わればゲームを進行中にする
+    # 初期配置が終わればゲームを進行中にする
     game.on_after_preparing_one_user()
     return json.dumps(dic) # クライアントでは使っていないが、配置情報をそのまま返す
 
@@ -126,6 +126,37 @@ def get_piece_list(user_id, game_id):
 
     return json.dumps({"pieces" : result})
 
+def is_valid_position(x, y, kind, is_first_mover):
+    if y > 0 and y < 7:
+        if x > 0 and x < 7:
+            return True
+    # ゴールの場合の例外処理
+    # note:今は上下方向にゴールすることは考慮していない
+    if kind == "good":
+        if is_first_mover:
+            if y == 6:
+                if x == 0 or x == 7:
+                    return True
+        else: # not is_first_mover
+            if y == 1:
+                if x == 0 or x == 7:
+                    return True
+    return False
+
+# 一マスの移動かチェック
+def is_valid_move_request(piece, x, y, user_id):
+    if piece.captured:
+        print("[warning]piece captured")
+        return False
+    if piece.owner_id.id != user_id:
+        print("[warning]not owner")
+        return False
+    if piece.x == x and abs(piece.y - y) == 1:
+        return True
+    if piece.y == y and abs(piece.x - x) == 1:
+        return True
+    return False
+
 # 駒の位置情報更新
 @game_app.route('/api/pieces/<int:piece_id>', methods=['PUT'])
 @login_required
@@ -136,11 +167,19 @@ def move_piece(user_id, piece_id):
     game = piece.game_id
     if game is None:
         return make_error_response(500, "Game is Not Found")
-    # TODO:操作可能かチェック
 
     dic = request.json
     x = dic[u'point_x']
     y = dic[u'point_y']
+
+    if game.get_turn_mover_user_id() != user_id:
+        return make_error_response(400, "Not Your Turn")
+    is_first_mover = game.first_mover_user_id == user_id
+    if not is_valid_move_request(piece, x, y, user_id):
+        return make_error_response(400, "Invalid Move Request")
+    if not is_valid_position(x, y, piece.kind, is_first_mover):
+        return make_error_response(400, "Invalid Move Position")
+
     piece.update_position(x, y)
     # ターンを更新
     game.next_turn()
