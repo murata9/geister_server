@@ -17,6 +17,17 @@ class Piece(Model):
     class Meta:
             database = db
 
+    def to_dict(self, user_id):
+        is_owner = user_id == self.owner_id.id
+        return {
+            "piece_id" : self.id
+            , "point_x" : self.x
+            , "point_y" : self.y
+            , "owner_user_id" : self.owner_id.id
+            , "captured" : 0
+            , "kind" : self.kind if is_owner else "unknown"
+        }
+
 def init_piece():
     db.create_tables([Piece])
 

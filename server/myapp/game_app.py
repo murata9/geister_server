@@ -106,3 +106,19 @@ def preparing(user_id, game_id):
     game.on_after_preparing_one_user()
     return json.dumps(dic) # クライアントでは使っていないが、配置情報をそのまま返す
 
+# 駒の位置情報取得
+@game_app.route('/api/games/<int:game_id>/pieces', methods=['GET'])
+@login_required
+def get_piece_list(user_id, game_id):
+    game = get_game(game_id)
+    if game is None:
+        return make_error_response(400, "Game Not Found")
+    result = []
+    pieces = game.pieces
+    for piece in pieces:
+        tmp = piece.to_dict(user_id)
+        print(tmp)
+        result.append(piece.to_dict(user_id))
+
+    return json.dumps({"pieces" : result})
+
