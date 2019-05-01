@@ -7,7 +7,7 @@ import json
 from define.define import PIECE_MAX_COUNT_BY_PLAYER
 from db_model.user import get_user
 from db_model.game import get_game
-from db_model.piece import create_piece
+from db_model.piece import create_piece, get_piece
 from .utility.login_required import login_required
 from .utility.error_response import make_error_response
 
@@ -122,3 +122,22 @@ def get_piece_list(user_id, game_id):
 
     return json.dumps({"pieces" : result})
 
+# 駒の位置情報更新
+@game_app.route('/api/pieces/<int:piece_id>', methods=['PUT'])
+@login_required
+def move_piece(user_id, piece_id):
+    piece = get_piece(piece_id)
+    if piece is None:
+        return make_error_response(400, "Piece Not Found")
+    game = piece.game_id
+    if game is None:
+        return make_error_response(500, "Game is Not Found")
+    # TODO:操作可能かチェック
+
+    dic = request.json
+    x = dic[u'point_x']
+    y = dic[u'point_y']
+    piece.update_position(x, y)
+    # ターンを更新
+    game.next_turn()
+    return json.dumps( piece.to_dict(user_id) )

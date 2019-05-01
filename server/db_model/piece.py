@@ -18,15 +18,21 @@ class Piece(Model):
             database = db
 
     def to_dict(self, user_id):
+        # note:取られていない駒は所有者しか種別が分からない
         is_owner = user_id == self.owner_id.id
         return {
             "piece_id" : self.id
             , "point_x" : self.x
             , "point_y" : self.y
             , "owner_user_id" : self.owner_id.id
-            , "captured" : 0
+            , "captured" : 0 # TODO
             , "kind" : self.kind if is_owner else "unknown"
         }
+
+    def update_position(self, x, y):
+        self.x = x
+        self.y = y
+        self.save()
 
 def init_piece():
     db.create_tables([Piece])
@@ -42,6 +48,17 @@ def create_piece(game_id, owner_id, x, y, kind):
             , kind=kind
         )
         return piece
+    except Exception as e:
+        print(type(e))
+        print(e)
+    return None
+
+def get_piece(piece_id):
+    try:
+        piece = Piece.get(Piece.id==piece_id)
+        return piece
+    except Piece.DoesNotExist:
+        return None
     except Exception as e:
         print(type(e))
         print(e)

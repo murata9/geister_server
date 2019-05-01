@@ -40,6 +40,10 @@ class Game(Model):
             self.status = "playing"
             self.save()
 
+    def next_turn(self):
+        self.turn_count = self.turn_count + 1
+        self.save()
+
 def init_game():
     db.create_tables([Game])
 
