@@ -38,17 +38,17 @@ def game(game_id):
     #             , "status" : "preparing" # preparing, playing, finished
     #        }'''
 
-def is_valid_prepare_position(x, y):
+def is_valid_prepare_position(x, y, is_first_mover):
     if x < 2 or x > 5:
         return False
-    if y < 5 or y > 6:
-        return False
-    return True
+    if is_first_mover:
+        if y < 1 or y > 2:
+            return False
+    else:
+        if y < 5 or y > 6:
+            return False
 
-def reverse_position(x, y):
-    x = 7 - x
-    y = 7 - y
-    return x, y
+    return True
 
 # 駒の初期配置
 @game_app.route('/api/games/<int:game_id>/preparation', methods=['POST'])
@@ -65,6 +65,7 @@ def preparing(user_id, game_id):
         return make_error_response(400, "Game Not Found")
     if game.status != "preparing":
         return make_error_response(400, "Game Status Not Preparing")
+    is_first_mover = game.first_mover_user_id == user.id
     dic = request.json
     pieces = dic[u'piece_preparations']
     # データに不正がないかチェックする
@@ -81,7 +82,12 @@ def preparing(user_id, game_id):
         x = piece[u'point_x']
         y = piece[u'point_y']
         kind = piece[u'kind']
-        if not is_valid_prepare_position(x, y):
+        if not is_valid_prepare_position(x, y, is_first_mover):
+            # debug
+            for piece in pieces:
+                x = piece[u'point_x']
+                y = piece[u'point_y']
+                print("x:" + str(x) + " y:" + str(y))
             return make_error_response(400, "Invalid Position")
         duplicate_checker.add((x, y))
         if kind == "good":
@@ -96,8 +102,6 @@ def preparing(user_id, game_id):
     for piece in pieces:
         x = piece[u'point_x']
         y = piece[u'point_y']
-        if game.first_mover_user_id != user.id:
-            x, y = reverse_position(x, y) # 後手なら位置を逆にする必要がある
         kind = piece[u'kind']
         piece = create_piece(game.id, user.id, x, y, kind)
         if piece is None:
