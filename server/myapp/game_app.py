@@ -4,10 +4,10 @@
 from flask import Blueprint, request, abort
 import json
 
-from define.define import PIECE_MAX_COUNT_BY_PLAYER
+from define.define import PIECE_MAX_COUNT_BY_PLAYER, Victory
 from db_model.user import get_user
 from db_model.game import get_game
-from db_model.piece import create_piece, get_piece, get_piece_by_pos
+from db_model.piece import create_piece, get_piece, get_piece_by_pos, get_alive_piece_by_user_id
 from .utility.login_required import login_required
 from .utility.error_response import make_error_response
 
@@ -169,6 +169,28 @@ def is_valid_move_request(piece, x, y, user_id):
         return True
     return False
 
+# return Vectory
+def check_victory_by_alive_enemy_piece(pieces):
+    if len(pieces) > (PIECE_MAX_COUNT_BY_PLAYER / 2):
+        return False # 駒が5個以上残っていれば勝敗はまだ付かない
+    good_count = 0
+    evil_count = 0
+    for piece in pieces:
+        if piece.kind == "good":
+            good_count = good_count + 1
+        elif piece.kind == "evil":
+            evil_count = evil_count + 1
+        else:
+            raise Exception("Invalid Kind:" + str(piece.kind))
+    if good_count == 0:
+        # 相手の良いお化けをすべて取ったので勝ち
+        return Victory.Win
+    elif evil_count == 0:
+        # 相手の悪いお化けをすべて取ったので負け
+        return Victory.Lose
+    return Victory.Undecided
+
+
 # 駒の位置情報更新
 @game_app.route('/api/pieces/<int:piece_id>', methods=['PUT'])
 @login_required
@@ -197,6 +219,14 @@ def move_piece(user_id, piece_id):
             return make_error_response(400, "Existed Piece")
         else:
             existed_piece.capture()
+            # 勝敗チェック
+            enemy_user_id = existed_piece.owner_id.id
+            pieces = get_alive_piece_by_user_id(piece.game_id, enemy_user_id)
+            victory = check_victory_by_alive_enemy_piece(pieces)
+            if victory is Victory.Win:
+                game.win(user_id)
+            elif victory is Victory.Lose:
+                game.win(enemy_user_id)
 
     if is_goal_pos(x, y, piece.kind, is_first_mover):
         game.win(user_id)

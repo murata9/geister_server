@@ -17,8 +17,10 @@ class Piece(Model):
 
     class Meta:
             database = db
+            # 複合インデックスの指定
             indexes = (
                 (("game_id", "x", "y"), False), # 取られた場合があるので、Unique=False
+                (("game_id", "owner_id", "captured"), False),
             )
 
     def to_dict(self, user_id):
@@ -83,6 +85,18 @@ def get_piece_by_pos(game_id, x, y):
         return piece
     except Piece.DoesNotExist:
         return None
+    except Exception as e:
+        print(type(e))
+        print(e)
+    return None
+
+def get_alive_piece_by_user_id(game_id, user_id):
+    try:
+        pieces = Piece.select().where(
+            Piece.game_id==game_id,
+            Piece.owner_id==user_id,
+            Piece.captured==False)
+        return pieces
     except Exception as e:
         print(type(e))
         print(e)
