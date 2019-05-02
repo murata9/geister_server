@@ -5,13 +5,12 @@ from peewee import *
 import json
 from .database.database import db
 from .user import User
-from .game import create_game, get_game
+from .game import Game, create_game, get_game
 from .piece import delete_pieces_by_game_id
 
 class Room(Model):
     # idフィールドが暗黙に追加される
-    # game_id = IntegerField(index=True, unique=True)
-    game_id = IntegerField(index=True) # 不便なので一時的にunique制約を外す
+    game = ForeignKeyField(Game, index=True, unique=True, column_name="game_id")
     created_user_id = ForeignKeyField(User, backref='rooms') # 必要になる個所はないが念のため保存する
     created_user_name = CharField()
     status = CharField(default='waiting')
@@ -23,7 +22,7 @@ class Room(Model):
         return {
             "room_id": self.id
             , "status" : self.status
-            , "game_id" : self.game_id
+            , "game_id" : self.game.id
             , "owner_name" : self.created_user_name
         }
 
@@ -40,33 +39,37 @@ class Room(Model):
     def is_empty(self):
         return self.get_entry_count() == 0 # TODO:もし観戦機能も作るなら観戦者も考慮する
 
+    # ルームへの入退場が発生したとき適切な処理を行う
     def on_after_entry_count_change(self):
         if self.is_full():
-            if self.status == "waiting":
-                # 満員になったらplayingにする
-                self.status = "playing"
-                self.save()
-                game = get_game(self.game_id)
-                if game is None:
-                    print("[logic error]game not found! game_id:" + str(self.game_id))
-                    return
-                entries = [p for p in self.player_entries]
-                game.start_game(entries)
+            self.on_full()
         elif self.is_empty():
-            # 空になったらルームを削除する
-            game = get_game(self.game_id)
-            if game:
-                delete_pieces_by_game_id(game.id)
-                game.delete_instance()
-            self.delete_instance()
-        elif self.status == "playing":
-            # ゲーム開始後、離脱が発生したら残ったプレイヤーが勝ちとする
-            game = get_game(self.game_id)
-            if game:
-                if len(self.player_entries) == 1:
-                    for entry in self.player_entries:
-                        print("force win:" + str(entry.user_id))
-                        game.win(entry.user_id)
+            self.on_empty()
+        else:
+            self.on_exit_user()
+
+    def on_full(self):
+        if self.status != "waiting":
+            return
+        # 満員になったらplayingにする
+        self.status = "playing"
+        self.save()
+        entries = [p for p in self.player_entries]
+        self.game.start_game(entries)
+
+    def on_empty(self):
+        # 空になったらルームと関連する情報をすべて削除する
+        delete_pieces_by_game_id(self.game.id)
+        self.delete_instance()
+        self.game.delete_instance()
+
+    def on_exit_user(self):
+        if self.status != "playing":
+            return
+        # ゲーム開始後、離脱が発生したら残ったプレイヤーが勝ちとする
+        if len(self.player_entries) == 1:
+            for entry in self.player_entries:
+                self.game.win(entry.user_id)
 
 def init_room():
     db.create_tables([Room])
@@ -76,7 +79,7 @@ def create_room(user):
         game = create_game()
         if game is None:
             return None
-        room = Room.create(created_user_id=user.id, created_user_name=user.name, game_id=game.id)
+        room = Room.create(created_user_id=user.id, created_user_name=user.name, game_id=game)
         return room
     except IntegrityError as e: # peewee.IntegrityError
         # DuplicateEntry
