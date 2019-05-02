@@ -41,7 +41,7 @@ def create_new_room(user_id):
     room = create_room(user)
     if room is None:
         return make_error_response(500, "room create failure")
-    entry = create_player_entry(user_id, room.id)
+    entry = create_player_entry(user, room)
     if entry is None:
         return make_error_response(500, "player entry create failure")
     result = {
@@ -63,7 +63,11 @@ def player_entried(user_id, room_id):
     if room.is_full():
         return make_error_response(400, "Room is Full")
 
-    entry = create_player_entry(user_id, room.id)
+    user = get_user(user_id)
+    if user is None:
+        return make_error_response(500, "User is Invalid")
+
+    entry = create_player_entry(user, room)
     if entry is None:
         return make_error_response(500, "player entry create failure")
     result = {

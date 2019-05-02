@@ -10,8 +10,8 @@ from .piece import delete_pieces_by_game_id
 
 class Room(Model):
     # idフィールドが暗黙に追加される
-    game = ForeignKeyField(Game, index=True, unique=True, column_name="game_id")
-    created_user_id = ForeignKeyField(User, backref='rooms') # 必要になる個所はないが念のため保存する
+    game = ForeignKeyField(Game, index=True, unique=True, column_name='game_id')
+    created_user = ForeignKeyField(User, backref='rooms', column_name='created_user_id') # 必要になる個所はないが念のため保存する
     created_user_name = CharField()
     status = CharField(default='waiting')
 
@@ -69,7 +69,7 @@ class Room(Model):
         # ゲーム開始後、離脱が発生したら残ったプレイヤーが勝ちとする
         if len(self.player_entries) == 1:
             for entry in self.player_entries:
-                self.game.win(entry.user_id)
+                self.game.win(entry.user.id)
 
 def init_room():
     db.create_tables([Room])
@@ -79,7 +79,7 @@ def create_room(user):
         game = create_game()
         if game is None:
             return None
-        room = Room.create(created_user_id=user.id, created_user_name=user.name, game_id=game)
+        room = Room.create(created_user=user, created_user_name=user.name, game=game)
         return room
     except IntegrityError as e: # peewee.IntegrityError
         # DuplicateEntry

@@ -29,9 +29,9 @@ def init_logger():
 
 def init_database():
     init_user()
-    init_room()
     init_session()
     init_game()
+    init_room()
     init_player_entry()
     init_piece()
 

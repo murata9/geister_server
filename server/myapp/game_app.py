@@ -103,7 +103,7 @@ def preparing(user_id, game_id):
         x = piece[u'point_x']
         y = piece[u'point_y']
         kind = piece[u'kind']
-        piece = create_piece(game.id, user.id, x, y, kind)
+        piece = create_piece(game, user, x, y, kind)
         if piece is None:
             return make_error_response(500, "Create Piece Failure")
     # 初期配置が終わればゲームを進行中にする
@@ -160,7 +160,7 @@ def is_valid_move_request(piece, x, y, user_id):
     if piece.captured:
         print("[warning]piece captured")
         return False
-    if piece.owner_id.id != user_id:
+    if piece.owner.id != user_id:
         print("[warning]not owner")
         return False
     if piece.x == x and abs(piece.y - y) == 1:
@@ -198,9 +198,7 @@ def move_piece(user_id, piece_id):
     piece = get_piece(piece_id)
     if piece is None:
         return make_error_response(400, "Piece Not Found")
-    game = piece.game_id
-    if game is None:
-        return make_error_response(500, "Game is Not Found")
+    game = piece.game
 
     dic = request.json
     x = dic[u'point_x']
@@ -213,15 +211,15 @@ def move_piece(user_id, piece_id):
         return make_error_response(400, "Invalid Move Request")
     if not is_valid_position(x, y, piece.kind, is_first_mover):
         return make_error_response(400, "Invalid Move Position")
-    existed_piece = get_piece_by_pos(piece.game_id, x, y)
+    existed_piece = get_piece_by_pos(piece.game.id, x, y)
     if existed_piece is not None:
-        if existed_piece.owner_id.id == piece.owner_id.id:
+        if existed_piece.owner.id == piece.owner.id:
             return make_error_response(400, "Existed Piece")
         else:
             existed_piece.capture()
             # 勝敗チェック
-            enemy_user_id = existed_piece.owner_id.id
-            pieces = get_alive_piece_by_user_id(piece.game_id, enemy_user_id)
+            enemy_user_id = existed_piece.owner.id
+            pieces = get_alive_piece_by_user_id(piece.game.id, enemy_user_id)
             victory = check_victory_by_alive_enemy_piece(pieces)
             if victory is Victory.Win:
                 game.win(user_id)
