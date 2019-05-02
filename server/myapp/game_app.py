@@ -7,7 +7,7 @@ import json
 from define.define import PIECE_MAX_COUNT_BY_PLAYER
 from db_model.user import get_user
 from db_model.game import get_game
-from db_model.piece import create_piece, get_piece
+from db_model.piece import create_piece, get_piece, get_piece_by_pos
 from .utility.login_required import login_required
 from .utility.error_response import make_error_response
 
@@ -179,6 +179,12 @@ def move_piece(user_id, piece_id):
         return make_error_response(400, "Invalid Move Request")
     if not is_valid_position(x, y, piece.kind, is_first_mover):
         return make_error_response(400, "Invalid Move Position")
+    existed_piece = get_piece_by_pos(piece.game_id, x, y)
+    if existed_piece is not None:
+        if existed_piece.owner_id.id == piece.owner_id.id:
+            return make_error_response(400, "Existed Piece")
+        else:
+            existed_piece.capture()
 
     piece.update_position(x, y)
     # ターンを更新
