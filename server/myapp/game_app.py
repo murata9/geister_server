@@ -126,21 +126,33 @@ def get_piece_list(user_id, game_id):
 
     return json.dumps({"pieces" : result})
 
+def is_goal_pos(x, y, kind, is_first_mover):
+    if kind != "good": # 良いお化けしかゴールできない
+        return False
+    if is_first_mover:
+        if y == 6:
+            if x == 0 or x == 7:
+                return True
+        if y == 7:
+            if x == 1 or x == 6:
+                return True
+    else: # not is_first_mover
+        if y == 1:
+            if x == 0 or x == 7:
+                return True
+        if y == 0:
+            if x == 1 or x == 6:
+                return True
+    return False
+
 def is_valid_position(x, y, kind, is_first_mover):
     if y > 0 and y < 7:
         if x > 0 and x < 7:
             return True
     # ゴールの場合の例外処理
     # note:今は上下方向にゴールすることは考慮していない
-    if kind == "good":
-        if is_first_mover:
-            if y == 6:
-                if x == 0 or x == 7:
-                    return True
-        else: # not is_first_mover
-            if y == 1:
-                if x == 0 or x == 7:
-                    return True
+    if is_goal_pos(x, y, kind, is_first_mover):
+        return True
     return False
 
 # 一マスの移動かチェック
@@ -186,6 +198,8 @@ def move_piece(user_id, piece_id):
         else:
             existed_piece.capture()
 
+    if is_goal_pos(x, y, piece.kind, is_first_mover):
+        game.win(user_id)
     piece.update_position(x, y)
     # ターンを更新
     game.next_turn()

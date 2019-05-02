@@ -44,6 +44,12 @@ class Game(Model):
         self.turn_count = self.turn_count + 1
         self.save()
 
+    def win(self, user_id):
+        if self.status == "finished":
+            return
+        self.winner_user_id = user_id
+        self.status = "finished"
+
 def init_game():
     db.create_tables([Game])
 
