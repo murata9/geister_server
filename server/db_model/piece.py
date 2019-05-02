@@ -64,6 +64,16 @@ def create_piece(game_id, owner_id, x, y, kind):
         print(e)
     return None
 
+def delete_pieces_by_game_id(game_id):
+    try:
+        query = Piece.delete().where(Piece.game_id==game_id)
+        query.execute()
+        return True
+    except Exception as e:
+        print(type(e))
+        print(e)
+    return False
+
 def get_piece(piece_id):
     try:
         piece = Piece.get(Piece.id==piece_id)

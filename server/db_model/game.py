@@ -49,6 +49,7 @@ class Game(Model):
             return
         self.winner_user_id = user_id
         self.status = "finished"
+        self.save()
 
 def init_game():
     db.create_tables([Game])

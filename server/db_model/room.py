@@ -6,6 +6,7 @@ import json
 from .database.database import db
 from .user import User
 from .game import create_game, get_game
+from .piece import delete_pieces_by_game_id
 
 class Room(Model):
     # idフィールドが暗黙に追加される
@@ -53,11 +54,19 @@ class Room(Model):
                 game.start_game(entries)
         elif self.is_empty():
             # 空になったらルームを削除する
+            game = get_game(self.game_id)
+            if game:
+                delete_pieces_by_game_id(game.id)
+                game.delete_instance()
             self.delete_instance()
         elif self.status == "playing":
-            # ゲーム開始後、離脱が発生したらwaitingに戻す(仮) TODO:敗北にする
-            self.status = "waiting"
-            self.save()
+            # ゲーム開始後、離脱が発生したら残ったプレイヤーが勝ちとする
+            game = get_game(self.game_id)
+            if game:
+                if len(self.player_entries) == 1:
+                    for entry in self.player_entries:
+                        print("force win:" + str(entry.user_id))
+                        game.win(entry.user_id)
 
 def init_room():
     db.create_tables([Room])
