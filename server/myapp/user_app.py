@@ -23,14 +23,10 @@ def signup():
         # 既に作成済みのユーザー名
         return make_error_response(400, "Existed UserName")
 
-    print ("username:" + str(user.name))
-    print ("userid:" + str(user.id))
     result = {
                 "user_id" : user.id,
                 "name" : user.name
             }
-    print (json.dumps(result))
-
     return json.dumps(result)
     # return '''{
     #             , "user_id":33
@@ -49,9 +45,8 @@ def login():
 
     session, token = create_session(user.id)
     if session is None or token is None:
-        print("Create Session Failure")
+        print("[error]Create Session Failure")
         return make_error_response(500, "Create Session Failure")
-    print ("token:" + str(token))
 
     result = {
                 "user_session_id": session.id,
@@ -66,10 +61,9 @@ def login():
     #        }'''
 
 # ログアウト
-# TODO:ログアウト時はセッションの期限切れでも通してもよいかも？
 @user_app.route('/api/user_sessions/<int:session_id>', methods=['DELETE'])
 @login_required
 def logout(user_id, session_id):
-    print("disable session_id:" + str(session_id))
+    print("[info]disable session_id:" + str(session_id))
     disable_session(session_id)
     return ""

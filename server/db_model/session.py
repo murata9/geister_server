@@ -52,7 +52,6 @@ def disable_session(session_id):
     except Exception as e:
         print(type(e))
         print(e)
-    print("Disable Session Failed")
     return False
 
 def get_secret_key():
@@ -80,9 +79,5 @@ def decode_access_token(token):
         return session.user_id, None
     except jwt.DecodeError:
         return None, "token is not valid"
-        print("token is not valid")
-        abort(400, "Token is not valid.")
     except jwt.ExpiredSignatureError:
         return None, "token is expired"
-        print("token is expired")
-        abort(400, "Token is expired.")

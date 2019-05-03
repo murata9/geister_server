@@ -57,20 +57,20 @@ def preparing(user_id, game_id):
     user = get_user(user_id)
     if user is None:
         return make_error_response(400, "User Not Found")
-    if len(user.pieces) != 0: # TODO:pieceが何らかの理由で消えないことがあると次のゲームができない
-        return make_error_response(400, "User Already Preparation")
-
     game = get_game(game_id)
     if game is None:
         return make_error_response(400, "Game Not Found")
     if game.status != "preparing":
         return make_error_response(400, "Game Status Not Preparing")
+    existed_pieces = get_alive_piece_by_user_id(game_id, user_id)
+    if len(existed_pieces) != 0:
+        return make_error_response(400, "User Already Preparation")
     is_first_mover = game.first_mover_user_id == user.id
     dic = request.json
     pieces = dic[u'piece_preparations']
     # データに不正がないかチェックする
     # データが8個であること
-    # 座標が、x:2～5, y:5,6の範囲内であること
+    # 座標が、配置可能な範囲内であること
     # 座標に重複がないこと
     # goodとevilが4個づつであること
     if len(pieces) != PIECE_MAX_COUNT_BY_PLAYER:
@@ -83,11 +83,6 @@ def preparing(user_id, game_id):
         y = piece[u'point_y']
         kind = piece[u'kind']
         if not is_valid_prepare_position(x, y, is_first_mover):
-            # debug
-            for piece in pieces:
-                x = piece[u'point_x']
-                y = piece[u'point_y']
-                print("x:" + str(x) + " y:" + str(y))
             return make_error_response(400, "Invalid Position")
         duplicate_checker.add((x, y))
         if kind == "good":
@@ -96,7 +91,6 @@ def preparing(user_id, game_id):
             evil_count = evil_count + 1
         else:
             return make_error_response(400, "Invalid Piece Kind")
-        print("x:" + str(x) + " y:" + str(y) + " kind:" + str(kind))
     if len(duplicate_checker) != PIECE_MAX_COUNT_BY_PLAYER:
         return make_error_response(400, "Duplicated Position")
     for piece in pieces:
@@ -117,13 +111,7 @@ def get_piece_list(user_id, game_id):
     game = get_game(game_id)
     if game is None:
         return make_error_response(400, "Game Not Found")
-    result = []
-    pieces = game.pieces
-    for piece in pieces:
-        tmp = piece.to_dict(user_id)
-        print(tmp)
-        result.append(piece.to_dict(user_id))
-
+    result = [p.to_dict(user_id) for p in game.pieces]
     return json.dumps({"pieces" : result})
 
 def is_goal_pos(x, y, kind, is_first_mover):
@@ -150,7 +138,6 @@ def is_valid_position(x, y, kind, is_first_mover):
         if x > 0 and x < 7:
             return True
     # ゴールの場合の例外処理
-    # note:今は上下方向にゴールすることは考慮していない
     if is_goal_pos(x, y, kind, is_first_mover):
         return True
     return False
@@ -169,7 +156,7 @@ def is_valid_move_request(piece, x, y, user_id):
         return True
     return False
 
-# return Vectory
+# return Victory
 def check_victory_by_alive_enemy_piece(pieces):
     if len(pieces) > (PIECE_MAX_COUNT_BY_PLAYER / 2):
         return False # 駒が5個以上残っていれば勝敗はまだ付かない
@@ -189,7 +176,6 @@ def check_victory_by_alive_enemy_piece(pieces):
         # 相手の悪いお化けをすべて取ったので負け
         return Victory.Lose
     return Victory.Undecided
-
 
 # 駒の位置情報更新
 @game_app.route('/api/pieces/<int:piece_id>', methods=['PUT'])

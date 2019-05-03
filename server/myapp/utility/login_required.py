@@ -16,6 +16,7 @@ def login_required(method):
         token = str(token).strip("\"")
         user_id, error_message = decode_access_token(token)
         if user_id is None:
+            # note:トークンの期限切れ等でエラーを返すと、クライアントが進行不能になるが、クライアント側で正しく処理すべき
             return make_error_response(400, error_message)
         return method(user_id, *args, **kwargs)
     return wrapper
