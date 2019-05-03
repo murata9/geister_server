@@ -2,6 +2,7 @@
 # -*- coding: UTF-8 -*-
 
 from peewee import *
+import os
 import jwt
 import datetime
 from .database.database import db
@@ -55,7 +56,7 @@ def disable_session(session_id):
     return False
 
 def get_secret_key():
-    return "hogehoge" # TODO:環境変数から読み込むなど、コードに埋め込まないようにする
+    return os.environ.get("GEISTER_SECRET_KEY", "DefaultSecretKey")
 
 def create_access_token(session_id):
     # セッションの有効期限(1時間) # TODO:有効期限を管理する方法は、時間を後から更新できるように検討し直した方が良い
