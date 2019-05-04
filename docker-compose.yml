@@ -7,9 +7,25 @@ services:
         environment:
             - GEISTER_SECRET_KEY
             - GEISTER_DATABASE_NAME
-            - GEISTER_DATABASE_HOST
+            - GEISTER_DATABASE_HOST=db
             - GEISTER_DATABASE_USER
             - GEISTER_DATABASE_PASS
             - GEISTER_DATABASE_PORT
         build:
             context: .
+        depends_on:
+            - db # note:depends_onではdbの起動までは待ってくれないので必要なら自前で制御する
+
+    db:
+        image: mysql:5.7
+        volumes:
+            - mysql_volume:/var/lib/mysql
+        environment:
+            - MYSQL_ALLOW_EMPTY_PASSWORD=yes
+            - MYSQL_DATABASE=${GEISTER_DATABASE_NAME}
+            - MYSQL_USER=${GEISTER_DATABASE_USER}
+            - MYSQL_PASSWORD=${GEISTER_DATABASE_PASS}
+
+volumes:
+  mysql_volume:
+    driver: local
