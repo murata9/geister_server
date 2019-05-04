@@ -10,6 +10,7 @@ COPY server /usr/src/app
 EXPOSE 5000
 
 # 環境変数の設定
+# 備考:docker composeの場合はそちらで設定する
 ARG secret_key
 ARG database_name
 ARG database_host

@@ -1,0 +1,15 @@
+version: "3"
+services:
+    geister_server:
+        image: geister_server
+        ports:
+            - 8888:5000
+        environment:
+            - GEISTER_SECRET_KEY
+            - GEISTER_DATABASE_NAME
+            - GEISTER_DATABASE_HOST
+            - GEISTER_DATABASE_USER
+            - GEISTER_DATABASE_PASS
+            - GEISTER_DATABASE_PORT
+        build:
+            context: .
