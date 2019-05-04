@@ -3,13 +3,42 @@
 
 from flask import Blueprint, request
 import json
+import hashlib
+import binascii
+import os
 
-from db_model.user import create_user, login_user
+from db_model.user import create_user, login_user, load_hased_password
 from db_model.session import create_session, get_session, disable_session
 from .utility.login_required import login_required
 from .utility.error_response import make_error_response
 
 user_app = Blueprint('user_app', __name__)
+
+def gen_salt():
+    return os.urandom(16)
+
+def load_salt(hashed_password):
+    _, salt = hashed_password.split(':')
+    return binascii.unhexlify(salt)
+
+def password_to_hash(password, salt=None):
+    # 以下くらい簡単な方が良いかも
+    # hashed = hashlib.sha224(password.encode()).hexdigest()
+
+    if salt is None:
+        salt = gen_salt()
+
+    iterations=100000
+    dk = hashlib.pbkdf2_hmac(
+        'sha224'
+        , password.encode()
+        , salt
+        , iterations
+    )
+    hashed = binascii.hexlify(dk).decode('utf-8')
+    str_salt = binascii.hexlify(salt).decode('utf-8')
+    hashed = hashed + ':' + str_salt
+    return hashed
 
 # ユーザー新規登録
 @user_app.route('/api/users', methods=['POST'])
@@ -17,7 +46,8 @@ def signup():
     dic = request.json
     name = dic[u"name"]
     password = dic[u"password"]
-    user = create_user(name, password)
+    hashed_password = password_to_hash(password)
+    user = create_user(name, hashed_password)
 
     if user is None:
         # 既に作成済みのユーザー名
@@ -39,7 +69,13 @@ def login():
     dic = request.json
     name = dic[u"name"]
     password = dic[u"password"]
-    user = login_user(name, password)
+    db_password = load_hased_password(name)
+    if db_password is None:
+        return make_error_response(400, "Login Failure")
+
+    salt = load_salt(db_password)
+    hashed_password = password_to_hash(password, salt)
+    user = login_user(name, hashed_password)
     if user is None:
         return make_error_response(400, "Login Failure")
 
