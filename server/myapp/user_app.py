@@ -99,7 +99,7 @@ def login():
     if user is None:
         return make_error_response(400, "Login Failure")
 
-    session, token = create_session(user.id)
+    session, token = create_session(user)
     if session is None or token is None:
         print("[error]Create Session Failure")
         return make_error_response(500, "Create Session Failure")

@@ -6,10 +6,11 @@ import os
 import jwt
 import datetime
 from .database.database import db
+from .user import User
 
 class Session(Model):
     # idフィールドが暗黙に追加される
-    user_id = IntegerField() # TODO:外部キーにしてもよいかも
+    user = ForeignKeyField(User, column_name='user_id')
     is_valid = BooleanField(default=True)
     # TODO:期限
 
@@ -20,9 +21,9 @@ def init_session():
     db.create_tables([Session])
 
 # return session, access_token
-def create_session(user_id):
+def create_session(user):
     try:
-        session = Session.create(user_id=user_id)
+        session = Session.create(user=user)
         token = create_access_token(session.id)
         return session, token
     except IntegrityError as e: # peewee.IntegrityError
