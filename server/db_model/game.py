@@ -48,7 +48,7 @@ class Game(Model):
         if self.status == "finished":
             return
         self.winner_user_id = user_id
-        self.status = "finished"
+        self.status = "finished" # note:プレイヤー退出時は"exited"にすると仕様に記載があるが、クライアントが対応していないため、退室時も"finished"にする
         self.save()
 
 def init_game():
