@@ -6,6 +6,7 @@ import json
 import hashlib
 import binascii
 import os
+import re
 
 from db_model.user import create_user, login_user, load_hased_password
 from db_model.session import create_session, get_session, disable_session
@@ -44,8 +45,27 @@ def password_to_hash(password, salt=None):
 @user_app.route('/api/users', methods=['POST'])
 def signup():
     dic = request.json
+
+    invalid_pattern = re.compile(r'\W') # 英数字以外
+
     name = dic[u"name"]
+    if len(name) < 4:
+        return make_error_response(400, "name too short")
+    if len(name) > 16:
+        return make_error_response(400, "name too long")
+    invalid = invalid_pattern.search(name)
+    if invalid is not None:
+        return make_error_response(400, "name invalid")
+
     password = dic[u"password"]
+    if len(password) < 8:
+        return make_error_response(400, "password too short")
+    if len(password) > 16:
+        return make_error_response(400, "password too long")
+    invalid = invalid_pattern.search(password)
+    if invalid is not None:
+        return make_error_response(400, "password invalid")
+
     hashed_password = password_to_hash(password)
     user = create_user(name, hashed_password)
 
