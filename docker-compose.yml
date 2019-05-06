@@ -11,6 +11,8 @@ services:
             - GEISTER_DATABASE_USER
             - GEISTER_DATABASE_PASS
             - GEISTER_DATABASE_PORT
+        volumes:
+            - ./server:/usr/src/app
         build:
             context: .
         depends_on:

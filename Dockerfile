@@ -8,6 +8,7 @@ RUN apt-get update \
 COPY server/requirements.txt /usr/src/app/requirements.txt
 RUN python3 -m pip install --no-cache-dir -r /usr/src/app/requirements.txt
 
+# 備考:docker composeの場合はマウントする
 COPY server /usr/src/app
 
 EXPOSE 5000
