@@ -14,7 +14,8 @@ room_app = Blueprint('room_app', __name__)
 
 # ルーム一覧取得
 @room_app.route('/api/rooms', methods=['GET'])
-def rooms():
+@login_required
+def rooms(user_id):
     rooms = get_rooms()
     if rooms is None:
         return make_error_response(500, "Rooms Get Error!")
@@ -93,7 +94,8 @@ def exit_room(user_id, entry_id):
 
 # ルーム状態取得
 @room_app.route('/api/rooms/<int:room_id>', methods=['GET'])
-def room(room_id):
+@login_required
+def room(user_id, room_id):
     room = get_room(room_id)
     if room is None:
         return make_error_response(400, "Room Not Found")

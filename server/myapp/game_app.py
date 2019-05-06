@@ -14,7 +14,8 @@ from .utility.error_response import make_error_response
 game_app = Blueprint('game_app', __name__)
 
 @game_app.route('/api/games/<int:game_id>', methods=['GET'])
-def game(game_id):
+@login_required
+def game(user_id, game_id):
     game = get_game(game_id)
     if game is None:
         return make_error_response(400, "game not found")
